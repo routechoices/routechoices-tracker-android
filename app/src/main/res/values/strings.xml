@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RoutechoicesTracker</string>
+    <string name="start">Start</string>
+    <string name="deviceid">deviceId</string>
+</resources>
