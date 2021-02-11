@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         deviceIdTextView.setText("Fetching device id")
-        if (getServiceState(this) == ServiceState.STARTED) {
+        if (getServiceState(this) == ServiceState.STARTED && serviceIntent != null) {
           startStopButton.setText("Stop")
         }
         this.fetchDeviceId()

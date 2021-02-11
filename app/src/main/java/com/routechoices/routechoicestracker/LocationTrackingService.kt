@@ -147,7 +147,7 @@ class LocationTrackingService : Service() {
             .setContentTitle("Routechoices Tracker")
             .setContentText("Live GPS Tracking is on")
             .setContentIntent(pendingIntent)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.mipmap.logo512x512_trans)
             .setTicker("Ticker text")
             .setPriority(Notification.PRIORITY_HIGH) // for under android 26 compatibility
             .build()
