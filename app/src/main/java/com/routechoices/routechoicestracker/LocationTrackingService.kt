@@ -1,24 +1,33 @@
 package com.routechoices.routechoicestracker
 
 import android.app.*
-import android.content.Intent
 import android.content.Context
+import android.content.Intent
+import android.graphics.Color
+import android.os.Build
+import android.os.PowerManager
+import android.os.SystemClock
+import android.util.Log
 import com.android.volley.Request
 import com.android.volley.Response
+import com.android.volley.Response.Listener
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.android.volley.Response.Listener
 import com.google.android.gms.location.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONObject
-import android.os.PowerManager
-import android.os.Build
-import android.graphics.Color
-import android.os.SystemClock
+
 
 class LocationTrackingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isServiceStarted = false
     private var deviceId = ""
+    private var bufferLat = ""
+    private var bufferLon = ""
+    private var bufferTs = ""
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest()
     private val locationCallback: LocationCallback = object : LocationCallback() {
@@ -30,7 +39,7 @@ class LocationTrackingService : Service() {
                     val timestamp = (location.time / 1e3).toInt()
                     val latitude = location.latitude;
                     val longitude = location.longitude
-                    sendLocation(timestamp, latitude, longitude)
+                    storeToBuffer(timestamp, latitude, longitude)
                 } else {
                     // Log.d("DEBUG", "Inaccurate location skip")
                 }
@@ -44,10 +53,10 @@ class LocationTrackingService : Service() {
             super.onStartCommand(intent, flags, startId)
             deviceId = intent?.getExtras()?.get("devId").toString()
             val action = intent?.getExtras()?.get("action").toString()
-            if(action =="start") {
-                startService()
-            } else {
+            if(action == "stop") {
                 stopService()
+            } else {
+                startService()
             }
         }
         return START_STICKY
@@ -63,6 +72,7 @@ class LocationTrackingService : Service() {
         val restartServiceIntent = Intent(applicationContext, LocationTrackingService::class.java).also {
             it.setPackage(packageName)
         };
+        restartServiceIntent.putExtra("devId", deviceId)
         val restartServicePendingIntent: PendingIntent = PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT);
         applicationContext.getSystemService(Context.ALARM_SERVICE);
         val alarmService: AlarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager;
@@ -94,6 +104,16 @@ class LocationTrackingService : Service() {
         } catch (e: IllegalArgumentException) {
             // Log.e(TAG, "Network provider does not exist", e)
         }
+
+        GlobalScope.launch(Dispatchers.IO) {
+            while (isServiceStarted) {
+                launch(Dispatchers.IO) {
+                    flushBuffer()
+                }
+                delay(10 * 1000)
+            }
+        }
+
     }
 
     private fun stopService() {
@@ -117,27 +137,44 @@ class LocationTrackingService : Service() {
         }
         isServiceStarted = false
         setServiceState(this, ServiceState.STOPPED)
+        flushBuffer()
     }
+    private fun storeToBuffer(timestamp: Int, lat: Double, lng: Double) {
+        bufferTs += "$timestamp,"
+        bufferLat += "$lat,"
+        bufferLon += "$lng,"
+    }
+    private fun flushBuffer() {
+        if (bufferTs == "") return
+        val url =
+            "https://www.routechoices.com/api/garmin"
 
-    private fun sendLocation(timestamp: Int, lat: Double, lng: Double) {
-        val url = "https://www.routechoices.com/api/traccar?id=" + deviceId + "&timestamp=" + timestamp.toString() + "&lat=" + lat.toString() + "&lon=" + lng.toString()
         val queue = Volley.newRequestQueue(this)
+        val params: JSONObject = JSONObject()
+        params.put("device_id", deviceId)
+        params.put("latitudes", bufferLat)
+        params.put("longitudes", bufferLon)
+        params.put("timestamps", bufferTs)
 
         val stringRequest = JsonObjectRequest(
-            Request.Method.POST, url, null,
+            Request.Method.POST,
+            url,
+            params,
             Listener<JSONObject> { response ->
                 onLocationSentResponse(response)
             },
             Response.ErrorListener { error ->
                 val _error = error
-                //Log.d("DEBUG", String(error.networkResponse.data))
+                Log.d("DEBUG", String(error.networkResponse.data))
             })
 
         queue.add(stringRequest)
     }
 
     private fun onLocationSentResponse(response: JSONObject){
-        // Log.d("DEBUG", "Location Sent")
+        bufferTs = ""
+        bufferLat = ""
+        bufferLon = ""
     }
 
     companion object {

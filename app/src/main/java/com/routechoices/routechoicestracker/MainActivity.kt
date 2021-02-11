@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
-import android.util.Log
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.Response.Listener
@@ -23,7 +22,6 @@ const val LOCATION_PERMISSION: Int = 0
 class MainActivity : AppCompatActivity() {
 
     private var deviceId = ""
-    private var serviceIntent: Intent? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -32,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         if (getServiceState(this) == ServiceState.STARTED) {
           startStopButton.setText("Stop")
         }
-        this.fetchDeviceId()
+        fetchDeviceId()
         startStopButton.setOnClickListener {
             toggleStartStop()
         }
@@ -66,13 +64,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchDeviceId() {
-        val sharedPref = this.getPreferences(Context.MODE_PRIVATE)
-        this.deviceId = sharedPref.getString("deviceId", "")
+        val sharedPref = getPreferences(Context.MODE_PRIVATE)
+        deviceId = sharedPref.getString("deviceId", "")
 
-        if (this.deviceId == "") {
-            this.requestDeviceId()
+        if (deviceId == "") {
+            requestDeviceId()
         } else {
-            this.deviceIdTextView.text = this.deviceId
+            deviceIdTextView.text = deviceId
         }
     }
 
@@ -85,7 +83,8 @@ class MainActivity : AppCompatActivity() {
                 onDeviceIdResponse(response)
             },
             Response.ErrorListener { error ->
-                this.deviceIdTextView.text = "Could not fetch Device ID"
+                deviceIdTextView.text = "Could not fetch Device ID"
+                fetchDeviceId()
             })
         queue.add(stringRequest)
     }
@@ -95,7 +94,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setDeviceId(deviceId: String) {
-        val sharedPref = this.getPreferences(Context.MODE_PRIVATE) ?: return
+        val sharedPref = getPreferences(Context.MODE_PRIVATE) ?: return
         with(sharedPref.edit()) {
             putString("deviceId", deviceId)
             commit()
