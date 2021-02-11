@@ -3,7 +3,6 @@ package com.routechoices.routechoicestracker
 import android.app.*
 import android.content.Intent
 import android.content.Context
-import android.util.Log
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
@@ -14,9 +13,11 @@ import org.json.JSONObject
 import android.os.PowerManager
 import android.os.Build
 import android.graphics.Color
+import android.os.SystemClock
 
 class LocationTrackingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
+    private var isServiceStarted = false
     private var deviceId = ""
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest()
@@ -39,19 +40,47 @@ class LocationTrackingService : Service() {
     override fun onBind(intent: Intent?) = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        deviceId = intent?.getExtras()?.get("devId").toString()
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        val _wakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "Routechoices:MyWakelockTag"
-        )
-        _wakeLock.acquire()
-        wakeLock = _wakeLock
+        if (intent != null) {
+            super.onStartCommand(intent, flags, startId)
+            deviceId = intent?.getExtras()?.get("devId").toString()
+            val action = intent?.getExtras()?.get("action").toString()
+            if(action =="start") {
+                startService()
+            } else {
+                stopService()
+            }
+        }
         return START_STICKY
     }
 
     override fun onCreate() {
+        super.onCreate()
+        val notification = createNotification()
+        startForeground(1, notification)
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent) {
+        val restartServiceIntent = Intent(applicationContext, LocationTrackingService::class.java).also {
+            it.setPackage(packageName)
+        };
+        val restartServicePendingIntent: PendingIntent = PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT);
+        applicationContext.getSystemService(Context.ALARM_SERVICE);
+        val alarmService: AlarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager;
+        alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 1000, restartServicePendingIntent);
+    }
+
+    private fun startService() {
+        if (isServiceStarted) return
+        isServiceStarted = true
+        setServiceState(this, ServiceState.STARTED)
+
+        wakeLock =
+            (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+                newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RoutechoicesTracker::lock").apply {
+                    acquire()
+                }
+            }
+
         if (fusedLocationClient == null)
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(this) as FusedLocationProviderClient
 
@@ -65,12 +94,9 @@ class LocationTrackingService : Service() {
         } catch (e: IllegalArgumentException) {
             // Log.e(TAG, "Network provider does not exist", e)
         }
-        val notification = createNotification()
-        startForeground(1, notification)
-        setServiceState(this, ServiceState.STARTED)
     }
 
-    override fun onDestroy() {
+    private fun stopService() {
         super.onDestroy()
         if (fusedLocationClient != null)
             try {
@@ -78,12 +104,18 @@ class LocationTrackingService : Service() {
             } catch (e: Exception) {
                 // Log.w(TAG, "Failed to remove location listeners")
             }
-        wakeLock?.let {
-            if (it.isHeld) {
-                it.release()
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                }
             }
+            stopForeground(true)
+            stopSelf()
+        } catch (e: Exception) {
+            // Log.w(TAG, "Service stopped without being started: ${e.message}")
         }
-        stopForeground(true)
+        isServiceStarted = false
         setServiceState(this, ServiceState.STOPPED)
     }
 
@@ -111,7 +143,6 @@ class LocationTrackingService : Service() {
     companion object {
         val TAG = "LocationTrackingService"
     }
-
 
     private fun createNotification(): Notification {
         val notificationChannelId = "Routechoices Tracker"
@@ -148,7 +179,7 @@ class LocationTrackingService : Service() {
             .setContentTitle("Routechoices Tracker")
             .setContentText("Live GPS Tracking is on")
             .setContentIntent(pendingIntent)
-            .setSmallIcon(R.mipmap.logo512x512_trans)
+            .setSmallIcon(R.mipmap.ic_launcher_transparent)
             .setTicker("Ticker text")
             .setPriority(Notification.PRIORITY_HIGH) // for under android 26 compatibility
             .build()

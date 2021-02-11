@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         deviceIdTextView.setText("Fetching device id")
-        if (getServiceState(this) == ServiceState.STARTED && serviceIntent != null) {
+        if (getServiceState(this) == ServiceState.STARTED) {
           startStopButton.setText("Stop")
         }
         this.fetchDeviceId()
@@ -47,21 +47,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleStartStop() {
-        if (startStopButton.text.equals("Start")) {
+        val action = if (startStopButton.getText() == "Start") {
             startStopButton.setText("Stop");
-            val _serviceIntent = Intent(this, LocationTrackingService::class.java)
-            _serviceIntent.putExtra("devId", deviceId)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(_serviceIntent)
-                serviceIntent = _serviceIntent
-                return
-            }
-            startService(_serviceIntent)
-            serviceIntent = _serviceIntent
+            "start"
         } else {
             startStopButton.setText("Start");
-            stopService(serviceIntent)
+            "stop"
         }
+        if (getServiceState(this) == ServiceState.STOPPED && action == "stop") return
+        val it = Intent(this, LocationTrackingService::class.java)
+        it.putExtra("devId", deviceId)
+        it.putExtra("action", action)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(it)
+            return
+        }
+        startService(it)
     }
 
     private fun fetchDeviceId() {
