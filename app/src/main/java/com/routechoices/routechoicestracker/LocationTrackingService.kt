@@ -18,20 +18,20 @@ import android.graphics.Color
 class LocationTrackingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var deviceId = ""
-    var fusedLocationClient: FusedLocationProviderClient? = null
+    private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest()
     private val locationCallback: LocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult?) {
             locationResult ?: return
             for (location in locationResult.locations){
-                Log.d("DEBUG", "Location received")
+                // Log.d("DEBUG", "Location received")
                 if(location.accuracy < 25) {
                     val timestamp = (location.time / 1e3).toInt()
                     val latitude = location.latitude;
                     val longitude = location.longitude
                     sendLocation(timestamp, latitude, longitude)
                 } else {
-                    Log.d("DEBUG", "Inaccurate location skip")
+                    // Log.d("DEBUG", "Inaccurate location skip")
                 }
             }
         }
@@ -61,9 +61,9 @@ class LocationTrackingService : Service() {
         try {
             fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, null)
         } catch (e: SecurityException) {
-            Log.e(TAG, "Fail to request location update", e)
+            // Log.e(TAG, "Fail to request location update", e)
         } catch (e: IllegalArgumentException) {
-            Log.e(TAG, "Network provider does not exist", e)
+            // Log.e(TAG, "Network provider does not exist", e)
         }
         val notification = createNotification()
         startForeground(1, notification)
@@ -76,7 +76,7 @@ class LocationTrackingService : Service() {
             try {
                 fusedLocationClient?.removeLocationUpdates(locationCallback)
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove location listeners")
+                // Log.w(TAG, "Failed to remove location listeners")
             }
         wakeLock?.let {
             if (it.isHeld) {
@@ -97,14 +97,15 @@ class LocationTrackingService : Service() {
                 onLocationSentResponse(response)
             },
             Response.ErrorListener { error ->
-                Log.d("DEBUG", String(error.networkResponse.data))
+                val _error = error
+                //Log.d("DEBUG", String(error.networkResponse.data))
             })
 
         queue.add(stringRequest)
     }
 
     private fun onLocationSentResponse(response: JSONObject){
-        Log.d("DEBUG", "Location Sent")
+        // Log.d("DEBUG", "Location Sent")
     }
 
     companion object {
@@ -113,7 +114,7 @@ class LocationTrackingService : Service() {
 
 
     private fun createNotification(): Notification {
-        val notificationChannelId = "RouteChoices Tracker"
+        val notificationChannelId = "Routechoices Tracker"
 
         // depending on the Android API that we're dealing with we will have
         // to use a specific method to create the notification

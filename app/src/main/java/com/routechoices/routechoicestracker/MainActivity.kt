@@ -43,7 +43,6 @@ class MainActivity : AppCompatActivity() {
                     Manifest.permission.ACCESS_FINE_LOCATION
                 ), LOCATION_PERMISSION
             )
-            Log.d("DEBUG", "No access to location")
         }
     }
 
@@ -66,9 +65,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchDeviceId() {
-
-        Log.d("DEBUG", "Started to fetch device id")
-
         val sharedPref = this.getPreferences(Context.MODE_PRIVATE)
         this.deviceId = sharedPref.getString("deviceId", "")
 
@@ -77,24 +73,19 @@ class MainActivity : AppCompatActivity() {
         } else {
             this.deviceIdTextView.text = this.deviceId
         }
-
     }
 
     private fun requestDeviceId() {
-        Log.d("DEBUG", "Requesting device id")
         val url = "https://www.routechoices.com/api/device_id"
         val queue = Volley.newRequestQueue(this)
 
         val stringRequest = JsonObjectRequest(Request.Method.POST, url, null,
             Listener<JSONObject> { response ->
-                // Display the first 500 characters of the response string.
                 onDeviceIdResponse(response)
             },
             Response.ErrorListener { error ->
-                Log.d("DEBUG", error.toString())
-                this.deviceIdTextView.text = "Oh fuck"
+                this.deviceIdTextView.text = "Could not fetch Device ID"
             })
-
         queue.add(stringRequest)
     }
 
@@ -108,7 +99,6 @@ class MainActivity : AppCompatActivity() {
             putString("deviceId", deviceId)
             commit()
         }
-
         this.deviceId = deviceId
         this.deviceIdTextView.text = this.deviceId
     }
