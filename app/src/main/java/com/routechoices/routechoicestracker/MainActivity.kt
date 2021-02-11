@@ -12,26 +12,30 @@ import com.android.volley.Response
 import com.android.volley.Response.Listener
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.google.android.gms.location.*
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
+import android.content.Intent
+
+import android.os.Build
 
 const val LOCATION_PERMISSION: Int = 0
 
 class MainActivity : AppCompatActivity() {
 
     private var deviceId = ""
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private val locationRequest: LocationRequest = LocationRequest()
-
-
+    private var serviceIntent: Intent? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         deviceIdTextView.setText("Fetching device id")
+        if (getServiceState(this) == ServiceState.STARTED) {
+          startStopButton.setText("Stop")
+        }
         this.fetchDeviceId()
-
+        startStopButton.setOnClickListener {
+            toggleStartStop()
+        }
 
         while (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
@@ -39,53 +43,26 @@ class MainActivity : AppCompatActivity() {
                     Manifest.permission.ACCESS_FINE_LOCATION
                 ), LOCATION_PERMISSION
             )
-
             Log.d("DEBUG", "No access to location")
         }
+    }
 
-        this.fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        this.locationRequest.interval = 1000
-        this.locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-
-        val locationCallback: LocationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                locationResult ?: return
-                for (location in locationResult.locations){
-                    Log.d("DEBUG", "Location received")
-                    if(location.accuracy < 25) {
-                        val timestamp = (location.time / 1e3).toInt()
-                        val latitude = location.latitude;
-                        val longitude = location.longitude
-                        sendLocation(timestamp, latitude, longitude)
-                    } else {
-                        Log.d("DEBUG", "Inacurate location skip")
-                    }
-                }
+    private fun toggleStartStop() {
+        if (startStopButton.text.equals("Start")) {
+            startStopButton.setText("Stop");
+            val _serviceIntent = Intent(this, LocationTrackingService::class.java)
+            _serviceIntent.putExtra("devId", deviceId)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(_serviceIntent)
+                serviceIntent = _serviceIntent
+                return
             }
+            startService(_serviceIntent)
+            serviceIntent = _serviceIntent
+        } else {
+            startStopButton.setText("Start");
+            stopService(serviceIntent)
         }
-
-        fusedLocationClient.requestLocationUpdates(locationRequest,
-            locationCallback,
-            null /* Looper */)
-    }
-
-    private fun sendLocation(timestamp: Int, lat: Double, lng: Double) {
-        val url = "https://www.routechoices.com/api/traccar?id=" + this.deviceId + "&timestamp=" + timestamp.toString() + "&lat=" + lat.toString() + "&lon=" + lng.toString()
-        val queue = Volley.newRequestQueue(this)
-
-        val stringRequest = JsonObjectRequest(Request.Method.POST, url, null,
-            Listener<JSONObject> { response ->
-                onLocationSentResponse(response)
-            },
-            Response.ErrorListener { error ->
-                Log.d("DEBUG", String(error.networkResponse.data))
-            })
-
-        queue.add(stringRequest)
-    }
-
-    private fun onLocationSentResponse(response: JSONObject){
-        Log.d("DEBUG", "Location Sent")
     }
 
     private fun fetchDeviceId() {
@@ -105,8 +82,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestDeviceId() {
         Log.d("DEBUG", "Requesting device id")
-        val queue = Volley.newRequestQueue(this)
         val url = "https://www.routechoices.com/api/device_id"
+        val queue = Volley.newRequestQueue(this)
 
         val stringRequest = JsonObjectRequest(Request.Method.POST, url, null,
             Listener<JSONObject> { response ->
@@ -135,5 +112,4 @@ class MainActivity : AppCompatActivity() {
         this.deviceId = deviceId
         this.deviceIdTextView.text = this.deviceId
     }
-
 }
