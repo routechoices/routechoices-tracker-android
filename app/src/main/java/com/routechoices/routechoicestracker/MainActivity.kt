@@ -14,7 +14,7 @@ import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import android.content.Intent
-
+import android.support.v7.app.AlertDialog;
 import android.os.Build
 
 const val LOCATION_PERMISSION: Int = 0
@@ -34,14 +34,19 @@ class MainActivity : AppCompatActivity() {
         startStopButton.setOnClickListener {
             toggleStartStop()
         }
-
-        while (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        val alertDialogBuilder = AlertDialog.Builder(this)
+        alertDialogBuilder.setTitle("Location access")
+        alertDialogBuilder.setMessage("Please allow location service all the time to be able to share your location while you run your events")
+        alertDialogBuilder.setPositiveButton("OK") { _, _ ->
             requestPermissions(
                 arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 ), LOCATION_PERMISSION
             )
         }
+        val alertDialog = alertDialogBuilder.create()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) alertDialog.show()
     }
 
     private fun toggleStartStop() {
