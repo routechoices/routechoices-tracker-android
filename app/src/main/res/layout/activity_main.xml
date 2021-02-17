@@ -52,4 +52,16 @@
             app:layout_constraintTop_toBottomOf="@+id/imageView"
             app:layout_constraintVertical_bias="1.0" />
 
+    <Button
+            android:id="@+id/copyBtn"
+            android:layout_width="58dp"
+            android:layout_height="42dp"
+            android:text="@string/copy"
+            android:textAppearance="@style/TextAppearance.AppCompat.Small"
+            app:layout_constraintBottom_toTopOf="@+id/startStopButton"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/deviceIdTextView"
+            app:layout_constraintVertical_bias="0.0" />
+
 </android.support.constraint.ConstraintLayout>

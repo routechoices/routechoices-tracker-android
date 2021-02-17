@@ -2,6 +2,8 @@ package com.routechoices.routechoicestracker
 
 import android.Manifest
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -16,12 +18,14 @@ import org.json.JSONObject
 import android.content.Intent
 import android.support.v7.app.AlertDialog;
 import android.os.Build
+import android.widget.Toast
 
 const val LOCATION_PERMISSION: Int = 0
 
 class MainActivity : AppCompatActivity() {
 
     private var deviceId = ""
+    private var clipboard: ClipboardManager? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -31,6 +35,11 @@ class MainActivity : AppCompatActivity() {
           startStopButton.setText("Stop")
         }
         fetchDeviceId()
+
+        copyBtn.setOnClickListener {
+            copyDeviceId()
+        }
+
         startStopButton.setOnClickListener {
             toggleStartStop()
         }
@@ -68,9 +77,17 @@ class MainActivity : AppCompatActivity() {
         startService(it)
     }
 
+    private fun copyDeviceId() {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val textToCopy = deviceId
+        val clip = ClipData.newPlainText("Device ID", textToCopy)
+        clipboard?.setPrimaryClip(clip);
+        Toast.makeText(applicationContext,"Device ID copied",Toast.LENGTH_SHORT).show()
+    }
+
     private fun fetchDeviceId() {
         val sharedPref = getPreferences(Context.MODE_PRIVATE)
-        deviceId = sharedPref.getString("deviceId", "")
+        deviceId = sharedPref.getString("deviceId", "").toString()
 
         if (deviceId == "") {
             requestDeviceId()
