@@ -5,9 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
+import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
-import android.util.Log
+// import android.util.Log
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.Response.Listener
@@ -35,7 +36,7 @@ class LocationTrackingService : Service() {
             locationResult ?: return
             for (location in locationResult.locations){
                 // Log.d("DEBUG", "Location received")
-                if(location.accuracy < 25) {
+                if(location.accuracy <= 50) {
                     val timestamp = (location.time / 1e3).toInt()
                     val latitude = location.latitude;
                     val longitude = location.longitude
@@ -83,7 +84,6 @@ class LocationTrackingService : Service() {
         if (isServiceStarted) return
         isServiceStarted = true
         setServiceState(this, ServiceState.STARTED)
-
         wakeLock =
             (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
                 newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RoutechoicesTracker::lock").apply {
@@ -95,10 +95,12 @@ class LocationTrackingService : Service() {
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(this) as FusedLocationProviderClient
 
         locationRequest.interval = 1000
+        locationRequest.fastestInterval = 500
+        locationRequest.smallestDisplacement = 0f
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         try {
-            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, null)
+            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
         } catch (e: SecurityException) {
             // Log.e(TAG, "Fail to request location update", e)
         } catch (e: IllegalArgumentException) {
@@ -165,7 +167,7 @@ class LocationTrackingService : Service() {
             },
             Response.ErrorListener { error ->
                 val _error = error
-                Log.d("DEBUG", String(error.networkResponse.data))
+                // Log.d("DEBUG", String(error.networkResponse.data))
             })
 
         queue.add(stringRequest)

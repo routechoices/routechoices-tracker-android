@@ -3,7 +3,7 @@
     <string name="copy">Copy</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
-    <string name="deviceid">deviceId</string>
+    <string name="deviceid">Device Id</string>
     <string name="deviceid_title">Device ID</string>
     <string name="logo">LOGO</string>
 </resources>
