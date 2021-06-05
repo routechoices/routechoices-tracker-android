@@ -19,6 +19,8 @@ import android.content.Intent
 import androidx.appcompat.app.AlertDialog;
 import android.os.Build
 import android.widget.Toast
+import android.graphics.Color
+import android.view.View;
 
 const val LOCATION_PERMISSION: Int = 0
 
@@ -30,9 +32,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        deviceIdTextView.setText("Fetching device id")
+        deviceIdTextView.setText("Fetching...")
         if (getServiceState(this) == ServiceState.STARTED) {
-          startStopButton.setText("Stop")
+            startStopButton.setText("Stop live gps")
+            startStopButton.setBackgroundColor(Color.parseColor("#ff0800"));
         }
         fetchDeviceId()
 
@@ -60,11 +63,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleStartStop() {
-        val action = if (startStopButton.getText() == "Start") {
-            startStopButton.setText("Stop");
+        val action = if (startStopButton.getText() == "Start live gps") {
+            startStopButton.setText("Stop live gps")
+            startStopButton.setBackgroundColor(Color.parseColor("#ff0800"));
             "start"
         } else {
-            startStopButton.setText("Start");
+            startStopButton.setText("Start live gps");
+            startStopButton.setBackgroundColor(Color.parseColor("#007AFF"));
             "stop"
         }
         if (getServiceState(this) == ServiceState.STOPPED && action == "stop") return
@@ -82,7 +87,7 @@ class MainActivity : AppCompatActivity() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val textToCopy = deviceId
         val clip = ClipData.newPlainText("Device ID", textToCopy)
-        clipboard?.setPrimaryClip(clip);
+        clipboard.setPrimaryClip(clip);
         Toast.makeText(applicationContext,"Device ID copied",Toast.LENGTH_SHORT).show()
     }
 
@@ -91,6 +96,8 @@ class MainActivity : AppCompatActivity() {
         deviceId = sharedPref.getString("deviceId", "").toString()
 
         if (deviceId == "") {
+            startStopButton.visibility = View.INVISIBLE
+            copyBtn.visibility = View.INVISIBLE
             requestDeviceId()
         } else {
             deviceIdTextView.text = deviceId
@@ -105,8 +112,7 @@ class MainActivity : AppCompatActivity() {
             Listener<JSONObject> { response ->
                 onDeviceIdResponse(response)
             },
-            Response.ErrorListener { error ->
-                deviceIdTextView.text = "Could not fetch Device ID"
+            Response.ErrorListener { _ ->
                 fetchDeviceId()
             })
         queue.add(stringRequest)
@@ -124,5 +130,7 @@ class MainActivity : AppCompatActivity() {
         }
         this.deviceId = deviceId
         this.deviceIdTextView.text = this.deviceId
+        startStopButton.visibility = View.VISIBLE
+        copyBtn.visibility = View.VISIBLE
     }
 }
