@@ -149,7 +149,7 @@ class LocationTrackingService : Service() {
     private fun flushBuffer() {
         if (bufferTs == "") return
         val url =
-            "https://www.routechoices.com/api/garmin"
+            "https://api.routechoices.com/garmin"
 
         val queue = Volley.newRequestQueue(this)
         val params: JSONObject = JSONObject()

@@ -1,12 +1,18 @@
 package com.routechoices.routechoicestracker
 
 import android.Manifest
-import android.content.Context
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.android.volley.Request
 import com.android.volley.Response
@@ -15,12 +21,8 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
-import android.content.Intent
-import androidx.appcompat.app.AlertDialog;
-import android.os.Build
-import android.widget.Toast
-import android.graphics.Color
-import android.view.View;
+import android.net.Uri
+
 
 const val LOCATION_PERMISSION: Int = 0
 
@@ -46,6 +48,11 @@ class MainActivity : AppCompatActivity() {
         startStopButton.setOnClickListener {
             toggleStartStop()
         }
+
+        registerButton.setOnClickListener {
+            onClickRegister()
+        }
+
         val alertDialogBuilder = AlertDialog.Builder(this)
         alertDialogBuilder.setTitle("Location access")
         alertDialogBuilder.setMessage("Please allow location service all the time to be able to share your location while you run your events")
@@ -105,7 +112,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestDeviceId() {
-        val url = "https://www.routechoices.com/api/device_id"
+        val url = "https://api.routechoices.com/device_id"
         val queue = Volley.newRequestQueue(this)
 
         val stringRequest = JsonObjectRequest(Request.Method.POST, url, null,
@@ -120,6 +127,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun onDeviceIdResponse(response: JSONObject) {
         this.setDeviceId(response.getString("device_id"))
+    }
+
+    private fun onClickRegister() {
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://registration.routechoices.com/#device_id=$deviceId"))
+        startActivity(browserIntent)
     }
 
     private fun setDeviceId(deviceId: String) {

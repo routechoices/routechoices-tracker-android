@@ -6,4 +6,5 @@
     <string name="deviceid">Device Id</string>
     <string name="deviceid_title">Device ID</string>
     <string name="logo">LOGO</string>
+    <string name="register">Register to an event</string>
 </resources>
