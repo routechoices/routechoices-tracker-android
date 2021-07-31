@@ -1,14 +1,9 @@
 package com.routechoices.routechoicestracker
 
 import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.os.Build
-import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -22,14 +17,42 @@ import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import android.net.Uri
+import android.os.*
+import kotlin.concurrent.fixedRateTimer
 
 
 const val LOCATION_PERMISSION: Int = 0
 
 class MainActivity : AppCompatActivity() {
-
+    private var mService: LocationTrackingService? = null
+    private var mBound: Boolean = false
     private var deviceId = ""
-    private var clipboard: ClipboardManager? = null
+
+    private val connection = object : ServiceConnection {
+
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            val binder = service as LocationTrackingService.MyBinder
+            mService = binder.getService()
+            mBound = true
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            mService = null
+            mBound = false
+        }
+    }
+
+    fun displayGpsStatusColor() {
+        var color = "#ff0800"
+        if (mBound && mService != null && startStopButton.getText() == "Stop live gps") {
+            if (System.currentTimeMillis()/1e3 - (mService?.lastLocationTS!!) < 10) {
+                color = "#4cd964"
+            }
+        }
+        deviceIdTextView.setTextColor(Color.parseColor(color))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -67,6 +90,11 @@ class MainActivity : AppCompatActivity() {
         }
         val alertDialog = alertDialogBuilder.create()
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) alertDialog.show()
+        fixedRateTimer("timer", false, 0L, 1000) {
+            this@MainActivity.runOnUiThread {
+                displayGpsStatusColor()
+            }
+        }
     }
 
     private fun toggleStartStop() {
@@ -77,10 +105,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             startStopButton.setText("Start live gps");
             startStopButton.setBackgroundColor(Color.parseColor("#007AFF"));
+            if (mBound) {
+                mService?.stopService()
+                unbindService(connection)
+            }
             "stop"
         }
-        if (getServiceState(this) == ServiceState.STOPPED && action == "stop") return
-        val it = Intent(this, LocationTrackingService::class.java)
+        if (action == "stop") return
+        val it = Intent(this, LocationTrackingService::class.java).also {
+            bindService(it, connection, Context.BIND_AUTO_CREATE)
+        }
         it.putExtra("devId", deviceId)
         it.putExtra("action", action)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

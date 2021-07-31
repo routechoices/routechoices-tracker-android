@@ -4,10 +4,7 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.os.Build
-import android.os.Looper
-import android.os.PowerManager
-import android.os.SystemClock
+import android.os.*
 // import android.util.Log
 import com.android.volley.Request
 import com.android.volley.Response
@@ -23,12 +20,18 @@ import org.json.JSONObject
 
 
 class LocationTrackingService : Service() {
+    inner class MyBinder : Binder() {
+        fun getService(): LocationTrackingService = this@LocationTrackingService
+    }
+
+    private val binder by lazy { MyBinder() }
     private var wakeLock: PowerManager.WakeLock? = null
     private var isServiceStarted = false
     private var deviceId = ""
     private var bufferLat = ""
     private var bufferLon = ""
     private var bufferTs = ""
+    var lastLocationTS = -1
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest()
     private val locationCallback: LocationCallback = object : LocationCallback() {
@@ -38,6 +41,7 @@ class LocationTrackingService : Service() {
                 // Log.d("DEBUG", "Location received")
                 if(location.accuracy <= 50) {
                     val timestamp = (location.time / 1e3).toInt()
+                    lastLocationTS = timestamp
                     val latitude = location.latitude;
                     val longitude = location.longitude
                     storeToBuffer(timestamp, latitude, longitude)
@@ -47,8 +51,9 @@ class LocationTrackingService : Service() {
             }
         }
     }
-    override fun onBind(intent: Intent?) = null
-
+    override fun onBind(intent: Intent): IBinder {
+        return binder
+    }
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
             super.onStartCommand(intent, flags, startId)
@@ -118,7 +123,7 @@ class LocationTrackingService : Service() {
 
     }
 
-    private fun stopService() {
+    fun stopService() {
         super.onDestroy()
         if (fusedLocationClient != null)
             try {
