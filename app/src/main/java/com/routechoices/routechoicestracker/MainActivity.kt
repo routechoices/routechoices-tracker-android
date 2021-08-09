@@ -40,6 +40,10 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceDisconnected(arg0: ComponentName) {
             mService = null
             mBound = false
+            if (startStopButton.getText() == "Stop live gps") {
+                startStopButton.setText("Start live gps")
+                toggleStartStop()
+            }
         }
     }
 
@@ -49,6 +53,10 @@ class MainActivity : AppCompatActivity() {
             if (System.currentTimeMillis()/1e3 - (mService?.lastLocationTS!!) < 10) {
                 color = "#4cd964"
             }
+        }
+        if ((!mBound || mService == null) && startStopButton.getText() == "Stop live gps") {
+            startStopButton.setText("Start live gps")
+            toggleStartStop()
         }
         deviceIdTextView.setTextColor(Color.parseColor(color))
     }

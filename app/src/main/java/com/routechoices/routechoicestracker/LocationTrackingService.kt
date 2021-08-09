@@ -5,7 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.*
-// import android.util.Log
+import android.util.Log
+import com.android.volley.RequestQueue
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.Response.Listener
@@ -32,15 +33,20 @@ class LocationTrackingService : Service() {
     private var bufferLon = ""
     private var bufferTs = ""
     var lastLocationTS = -1
+    var lastGpsDataTs = -1
+    private var requestQueue: RequestQueue? = null
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest()
     private val locationCallback: LocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult?) {
+            Log.d("DEBUG", "location callback")
             locationResult ?: return
             for (location in locationResult.locations){
-                // Log.d("DEBUG", "Location received")
+                Log.d("DEBUG", "Location received")
+                val timestamp = (location.time / 1e3).toInt()
+                lastGpsDataTs = timestamp
                 if(location.accuracy <= 50) {
-                    val timestamp = (location.time / 1e3).toInt()
+                    Log.d("DEBUG", "Location accuracy correct")
                     lastLocationTS = timestamp
                     val latitude = location.latitude;
                     val longitude = location.longitude
@@ -124,7 +130,6 @@ class LocationTrackingService : Service() {
     }
 
     fun stopService() {
-        super.onDestroy()
         if (fusedLocationClient != null)
             try {
                 fusedLocationClient?.removeLocationUpdates(locationCallback)
@@ -146,17 +151,48 @@ class LocationTrackingService : Service() {
         setServiceState(this, ServiceState.STOPPED)
         flushBuffer()
     }
+
+    private fun restartService() {
+        if (fusedLocationClient != null)
+            try {
+                fusedLocationClient?.removeLocationUpdates(locationCallback)
+                fusedLocationClient = null
+            } catch (e: Exception) {
+                // Log.w(TAG, "Failed to remove location listeners")
+            }
+        if (fusedLocationClient == null)
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this) as FusedLocationProviderClient
+
+        locationRequest.interval = 1000
+        locationRequest.fastestInterval = 500
+        locationRequest.smallestDisplacement = 0f
+        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+
+        try {
+            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
+        } catch (e: SecurityException) {
+            // Log.e(TAG, "Fail to request location update", e)
+        } catch (e: IllegalArgumentException) {
+            // Log.e(TAG, "Network provider does not exist", e)
+        }
+    }
+
     private fun storeToBuffer(timestamp: Int, lat: Double, lng: Double) {
         bufferTs += "$timestamp,"
         bufferLat += "$lat,"
         bufferLon += "$lng,"
     }
     private fun flushBuffer() {
+        Log.d("DEBUG", "Flush")
+        if (lastGpsDataTs != -1 && System.currentTimeMillis()/1e3 - lastGpsDataTs > 30) {
+            Log.d("DEBUG", "Restarting service")
+            restartService()
+        }
         if (bufferTs == "") return
         val url =
             "https://api.routechoices.com/locations"
 
-        val queue = Volley.newRequestQueue(this)
+
         val params: JSONObject = JSONObject()
         params.put("device_id", deviceId)
         params.put("latitudes", bufferLat)
@@ -174,8 +210,10 @@ class LocationTrackingService : Service() {
                 val _error = error
                 // Log.d("DEBUG", String(error.networkResponse.data))
             })
-
-        queue.add(stringRequest)
+        if(requestQueue == null) {
+            requestQueue = Volley.newRequestQueue(this)
+        }
+        requestQueue!!.add(stringRequest)
     }
 
     private fun onLocationSentResponse(response: JSONObject){
@@ -197,7 +235,7 @@ class LocationTrackingService : Service() {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
             val channel = NotificationChannel(
                 notificationChannelId,
-                "Endless Service notifications channel",
+                "Routechoices Tracker Service notifications channel",
                 NotificationManager.IMPORTANCE_HIGH
             ).let {
                 it.description = "Routechoices Tracker"
