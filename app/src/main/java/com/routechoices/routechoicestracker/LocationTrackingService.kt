@@ -182,6 +182,7 @@ class LocationTrackingService : Service() {
         bufferLat += "$lat,"
         bufferLon += "$lng,"
     }
+
     private fun flushBuffer() {
         Log.d("DEBUG", "Flush")
         if (lastGpsDataTs != -1 && System.currentTimeMillis()/1e3 - lastGpsDataTs > 30) {

@@ -19,7 +19,9 @@ import org.json.JSONObject
 import android.net.Uri
 import android.os.*
 import kotlin.concurrent.fixedRateTimer
-
+import android.provider.Settings
+import android.util.Log
+import androidx.core.app.ActivityCompat
 
 const val LOCATION_PERMISSION: Int = 0
 
@@ -27,6 +29,16 @@ class MainActivity : AppCompatActivity() {
     private var mService: LocationTrackingService? = null
     private var mBound: Boolean = false
     private var deviceId = ""
+    private var shouldRequestBackgroundPermission = false
+    private val isBackgroundLocationPermissionAvailable: Boolean
+        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    private val isBackgroundPermissionLabelAvailable: Boolean
+        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+    private var pkgManager: PackageManager? = null
+
+    companion object {
+        private const val PERMISSIONS_REQUEST_CODE = 736
+    }
 
     private val connection = object : ServiceConnection {
 
@@ -61,9 +73,114 @@ class MainActivity : AppCompatActivity() {
         deviceIdTextView.setTextColor(Color.parseColor(color))
     }
 
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val pwrm = applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val name = applicationContext.packageName
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return pwrm.isIgnoringBatteryOptimizations(name)
+        }
+        return true
+    }
+
+    private fun checkBattery() {
+        if (!isIgnoringBatteryOptimizations() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val name = resources.getString(R.string.app_name)
+            val alertDialogBuilder = AlertDialog.Builder(this)
+            alertDialogBuilder.setTitle("Battery Optimization")
+            alertDialogBuilder.setMessage("$name is not excluded from Battery optimization.\nThis mean data streaming will stop while the screen is locked.\nTo change that go to:\nBattery optimization > All apps > $name > Don't optimize")
+            alertDialogBuilder.setPositiveButton(android.R.string.ok) { _, _ ->
+                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                startActivity(intent)
+            }
+            alertDialogBuilder.setNegativeButton(android.R.string.cancel) { dialog,_ ->
+                dialog.dismiss()
+            }
+            val alertDialog = alertDialogBuilder.create()
+            alertDialog.show()
+        }
+    }
+
+    private fun checkPermissionStatus(permission: String): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun requestBackgroundLocationPermission(view: View?) {
+        if (isBackgroundLocationPermissionAvailable) {
+            val hasLocation = checkPermissionStatus(Manifest.permission.ACCESS_FINE_LOCATION)
+            val hasBgLocation = checkPermissionStatus(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            if (!hasBgLocation) {
+                requestPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            }
+            if (!hasLocation) {
+                shouldRequestBackgroundPermission = true
+                showLocationDisclosure(true)
+            }
+        }
+    }
+    private fun rationaleTitleFromPermission(permission: String): String {
+        return if (!isBackgroundLocationPermissionAvailable) {
+            "Location access"
+        } else when (permission) {
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION -> "Background location access"
+            Manifest.permission.ACCESS_FINE_LOCATION -> "Fine location access"
+            else -> "Location access"
+        }
+    }
+
+    private fun rationaleMessageFromPermission(permission: String): String {
+        return if (!isBackgroundLocationPermissionAvailable) {
+            "Allow location access for this app to work"
+        } else when (permission) {
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION -> "Allow background location access for this app to work"
+            Manifest.permission.ACCESS_FINE_LOCATION -> "Allow fine location access for this app to work"
+            else -> "Allow location access for this app to work"
+        }
+    }
+
+    private fun showPermissionRationale(permission: String, titleId: String, messageId: String) {
+        AlertDialog.Builder(this)
+            .setTitle(titleId)
+            .setMessage(messageId)
+            .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                dialog.dismiss()
+                ActivityCompat.requestPermissions(this@MainActivity, arrayOf(permission),
+                    PERMISSIONS_REQUEST_CODE)
+            }
+            .show()
+    }
+
+    private fun showLocationDisclosure(requestBackground: Boolean) {
+        AlertDialog.Builder(this)
+            .setTitle("Allow location access")
+            .setMessage("Allow location access for this app to work properly")
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                dialog.dismiss()
+                shouldRequestBackgroundPermission = requestBackground
+                requestPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
+                shouldRequestBackgroundPermission = false
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    private fun requestPermission(permission: String) {
+        if (checkPermissionStatus(permission)) {
+            return
+        }
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+            showPermissionRationale(permission, rationaleTitleFromPermission(permission), rationaleMessageFromPermission(permission))
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(permission),
+                PERMISSIONS_REQUEST_CODE)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        pkgManager = applicationContext.packageManager
 
         deviceIdTextView.setText("Fetching...")
         if (getServiceState(this) == ServiceState.STARTED) {
@@ -84,25 +201,15 @@ class MainActivity : AppCompatActivity() {
             onClickRegister()
         }
 
-        val alertDialogBuilder = AlertDialog.Builder(this)
-        alertDialogBuilder.setTitle("Location access")
-        alertDialogBuilder.setMessage("Please allow location service all the time to be able to share your location while you run your events")
-        alertDialogBuilder.setPositiveButton("OK") { _, _ ->
-            requestPermissions(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ), LOCATION_PERMISSION
-            )
-        }
-        val alertDialog = alertDialogBuilder.create()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) alertDialog.show()
+        requestBackgroundLocationPermission(null)
+
         fixedRateTimer("timer", false, 0L, 1000) {
             this@MainActivity.runOnUiThread {
                 displayGpsStatusColor()
             }
         }
+
+        checkBattery()
     }
 
     private fun toggleStartStop() {
