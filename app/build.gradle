@@ -4,15 +4,20 @@ apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
 
+def configPropertiesFile = rootProject.file("config.properties")
+def configProperties = new Properties()
+configProperties.load(new FileInputStream(configPropertiesFile))
+
 android {
     compileSdkVersion 30
     defaultConfig {
         applicationId "com.routechoices.routechoicestracker"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 20
-        versionName "1.0.20"
+        versionCode 21
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "POST_LOCATION_SECRET", configProperties['POST_LOCATION_SECRET'])
     }
     buildTypes {
         release {

@@ -63,8 +63,8 @@ class LocationTrackingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
             super.onStartCommand(intent, flags, startId)
-            deviceId = intent?.getExtras()?.get("devId").toString()
-            val action = intent?.getExtras()?.get("action").toString()
+            deviceId = intent.getExtras()?.get("devId").toString()
+            val action = intent.getExtras()?.get("action").toString()
             if(action == "stop") {
                 stopService()
             } else {
@@ -199,6 +199,7 @@ class LocationTrackingService : Service() {
         params.put("latitudes", bufferLat)
         params.put("longitudes", bufferLon)
         params.put("timestamps", bufferTs)
+        params.put("secret", BuildConfig.POST_LOCATION_SECRET)
 
         val stringRequest = JsonObjectRequest(
             Request.Method.POST,
@@ -208,8 +209,7 @@ class LocationTrackingService : Service() {
                 onLocationSentResponse(response)
             },
             Response.ErrorListener { error ->
-                val _error = error
-                // Log.d("DEBUG", String(error.networkResponse.data))
+                Log.d("DEBUG", "Error")
             })
         if(requestQueue == null) {
             requestQueue = Volley.newRequestQueue(this)
