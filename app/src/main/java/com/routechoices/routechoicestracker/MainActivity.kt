@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.android.volley.Request
+import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.Response.Listener
 import com.android.volley.toolbox.JsonObjectRequest
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val isBackgroundPermissionLabelAvailable: Boolean
         get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
     private var pkgManager: PackageManager? = null
-
+    private var requestQueue: RequestQueue? = null
     companion object {
         private const val PERMISSIONS_REQUEST_CODE = 736
     }
@@ -181,7 +182,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         pkgManager = applicationContext.packageManager
-
+        requestQueue = Volley.newRequestQueue(this)
         deviceIdTextView.setText("Fetching...")
         if (getServiceState(this) == ServiceState.STARTED) {
             startStopButton.setText("Stop live gps")
@@ -209,7 +210,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        checkBattery()
+        // checkBattery()
     }
 
     private fun toggleStartStop() {
@@ -256,22 +257,47 @@ class MainActivity : AppCompatActivity() {
             copyBtn.visibility = View.INVISIBLE
             requestDeviceId()
         } else {
+            val isOld = Regex("[^0-9]").containsMatchIn(deviceId)
+            if (isOld) {
+                startStopButton.visibility = View.INVISIBLE
+                copyBtn.visibility = View.INVISIBLE
+                val url = "https://api.routechoices.com/device/" + deviceId + "/registrations"
+
+
+                val stringRequest = JsonObjectRequest(Request.Method.GET, url, null,
+                    Listener<JSONObject> { response ->
+                        val count = response.getInt("count")
+                        if (count == 0) {
+                            requestDeviceId()
+                        } else {
+                            startStopButton.visibility = View.VISIBLE
+                            copyBtn.visibility = View.VISIBLE
+                        }
+                    },
+                    Response.ErrorListener { _ ->
+                        requestDeviceId()
+                    })
+                requestQueue?.add(stringRequest)
+                return
+            }
             deviceIdTextView.text = deviceId
         }
     }
 
     private fun requestDeviceId() {
         val url = "https://api.routechoices.com/device_id"
-        val queue = Volley.newRequestQueue(this)
 
-        val stringRequest = JsonObjectRequest(Request.Method.POST, url, null,
+        val params: JSONObject = JSONObject()
+        params.put("secret", BuildConfig.POST_LOCATION_SECRET)
+
+        val stringRequest = JsonObjectRequest(Request.Method.POST, url, params,
             Listener<JSONObject> { response ->
                 onDeviceIdResponse(response)
             },
             Response.ErrorListener { _ ->
                 fetchDeviceId()
             })
-        queue.add(stringRequest)
+        requestQueue?.add(stringRequest)
     }
 
     private fun onDeviceIdResponse(response: JSONObject) {
