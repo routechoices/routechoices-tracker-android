@@ -4,6 +4,10 @@ import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -17,24 +21,15 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
-import android.net.Uri
-import android.os.*
 import kotlin.concurrent.fixedRateTimer
-import android.provider.Settings
 import android.util.Log
-import androidx.core.app.ActivityCompat
-
-const val LOCATION_PERMISSION: Int = 0
 
 class MainActivity : AppCompatActivity() {
     private var mService: LocationTrackingService? = null
     private var mBound: Boolean = false
     private var deviceId = ""
-    private var shouldRequestBackgroundPermission = false
     private val isBackgroundLocationPermissionAvailable: Boolean
         get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    private val isBackgroundPermissionLabelAvailable: Boolean
-        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
     private var pkgManager: PackageManager? = null
     private var requestQueue: RequestQueue? = null
     companion object {
@@ -60,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun displayGpsStatusColor() {
+    private fun displayGpsStatusColor() {
         var color = "#ff0800"
         if (mBound && mService != null && startStopButton.getText() == "Stop live gps") {
             if (System.currentTimeMillis()/1e3 - (mService?.lastLocationTS!!) < 10) {
@@ -74,108 +69,59 @@ class MainActivity : AppCompatActivity() {
         deviceIdTextView.setTextColor(Color.parseColor(color))
     }
 
-    private fun isIgnoringBatteryOptimizations(): Boolean {
-        val pwrm = applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
-        val name = applicationContext.packageName
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return pwrm.isIgnoringBatteryOptimizations(name)
-        }
-        return true
-    }
-
-    private fun checkBattery() {
-        if (!isIgnoringBatteryOptimizations() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val name = resources.getString(R.string.app_name)
-            val alertDialogBuilder = AlertDialog.Builder(this)
-            alertDialogBuilder.setTitle("Battery Optimization")
-            alertDialogBuilder.setMessage("$name is not excluded from Battery optimization.\nThis mean data streaming will stop while the screen is locked.\nTo change that go to:\nBattery optimization > All apps > $name > Don't optimize")
-            alertDialogBuilder.setPositiveButton(android.R.string.ok) { _, _ ->
-                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                startActivity(intent)
-            }
-            alertDialogBuilder.setNegativeButton(android.R.string.cancel) { dialog,_ ->
-                dialog.dismiss()
-            }
-            val alertDialog = alertDialogBuilder.create()
-            alertDialog.show()
-        }
-    }
-
     private fun checkPermissionStatus(permission: String): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(
+            this,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
-    fun requestBackgroundLocationPermission(view: View?) {
+    private fun requestBackgroundLocationPermission() {
+        val permissions: MutableSet<String> = HashSet()
+        val hasLocation = checkPermissionStatus(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (!hasLocation) {
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        var askBg = false
         if (isBackgroundLocationPermissionAvailable) {
-            val hasLocation = checkPermissionStatus(Manifest.permission.ACCESS_FINE_LOCATION)
             val hasBgLocation = checkPermissionStatus(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             if (!hasBgLocation) {
-                requestPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-            }
-            if (!hasLocation) {
-                shouldRequestBackgroundPermission = true
-                showLocationDisclosure(true)
+                askBg = true
             }
         }
-    }
-    private fun rationaleTitleFromPermission(permission: String): String {
-        return if (!isBackgroundLocationPermissionAvailable) {
-            "Location access"
-        } else when (permission) {
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION -> "Background location access"
-            Manifest.permission.ACCESS_FINE_LOCATION -> "Fine location access"
-            else -> "Location access"
+        if (permissions.isNotEmpty()) {
+            showLocationDisclosure(permissions.toTypedArray(), askBg)
+        } else if (askBg) {
+            showBGLocationDisclosure()
         }
     }
 
-    private fun rationaleMessageFromPermission(permission: String): String {
-        return if (!isBackgroundLocationPermissionAvailable) {
-            "Allow location access for this app to work"
-        } else when (permission) {
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION -> "Allow background location access for this app to work"
-            Manifest.permission.ACCESS_FINE_LOCATION -> "Allow fine location access for this app to work"
-            else -> "Allow location access for this app to work"
-        }
-    }
-
-    private fun showPermissionRationale(permission: String, titleId: String, messageId: String) {
-        AlertDialog.Builder(this)
-            .setTitle(titleId)
-            .setMessage(messageId)
-            .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
-            .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                dialog.dismiss()
-                ActivityCompat.requestPermissions(this@MainActivity, arrayOf(permission),
-                    PERMISSIONS_REQUEST_CODE)
-            }
-            .show()
-    }
-
-    private fun showLocationDisclosure(requestBackground: Boolean) {
+    private fun showLocationDisclosure(permissions: Array<String>, askBg: Boolean) {
         AlertDialog.Builder(this)
             .setTitle("Allow location access")
-            .setMessage("Allow location access for this app to work properly")
+            .setMessage("Allow precise location access for this app to work properly")
             .setPositiveButton(android.R.string.ok) { dialog, _ ->
                 dialog.dismiss()
-                shouldRequestBackgroundPermission = requestBackground
-                requestPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                requestPermissions(permissions, PERMISSIONS_REQUEST_CODE)
+                if (askBg) showBGLocationDisclosure()
             }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                shouldRequestBackgroundPermission = false
                 dialog.cancel()
             }
             .show()
     }
 
-    private fun requestPermission(permission: String) {
-        if (checkPermissionStatus(permission)) {
-            return
-        }
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-            showPermissionRationale(permission, rationaleTitleFromPermission(permission), rationaleMessageFromPermission(permission))
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(permission),
-                PERMISSIONS_REQUEST_CODE)
-        }
+    private fun showBGLocationDisclosure() {
+        AlertDialog.Builder(this)
+            .setTitle("Allow background location access")
+            .setMessage("Allow this app location access all the time for it to work properly")
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                dialog.dismiss()
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), PERMISSIONS_REQUEST_CODE)
+            }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -186,7 +132,7 @@ class MainActivity : AppCompatActivity() {
         deviceIdTextView.setText("Fetching...")
         if (getServiceState(this) == ServiceState.STARTED) {
             startStopButton.setText("Stop live gps")
-            startStopButton.setBackgroundColor(Color.parseColor("#ff0800"));
+            startStopButton.setBackgroundColor(Color.parseColor("#ff0800"))
         }
         fetchDeviceId()
 
@@ -202,7 +148,7 @@ class MainActivity : AppCompatActivity() {
             onClickRegister()
         }
 
-        requestBackgroundLocationPermission(null)
+        requestBackgroundLocationPermission()
 
         fixedRateTimer("timer", false, 0L, 1000) {
             this@MainActivity.runOnUiThread {
@@ -216,11 +162,11 @@ class MainActivity : AppCompatActivity() {
     private fun toggleStartStop() {
         val action = if (startStopButton.getText() == "Start live gps") {
             startStopButton.setText("Stop live gps")
-            startStopButton.setBackgroundColor(Color.parseColor("#ff0800"));
+            startStopButton.setBackgroundColor(Color.parseColor("#ff0800"))
             "start"
         } else {
-            startStopButton.setText("Start live gps");
-            startStopButton.setBackgroundColor(Color.parseColor("#007AFF"));
+            startStopButton.setText("Start live gps")
+            startStopButton.setBackgroundColor(Color.parseColor("#007AFF"))
             if (mBound) {
                 mService?.stopService()
                 unbindService(connection)
@@ -233,19 +179,15 @@ class MainActivity : AppCompatActivity() {
         }
         it.putExtra("devId", deviceId)
         it.putExtra("action", action)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(it)
-            return
-        }
-        startService(it)
+        startForegroundService(it)
     }
 
     private fun copyDeviceId() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val textToCopy = deviceId
         val clip = ClipData.newPlainText("Device ID", textToCopy)
-        clipboard.setPrimaryClip(clip);
-        Toast.makeText(applicationContext,"Device ID copied",Toast.LENGTH_SHORT).show()
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(applicationContext, "Device ID copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun fetchDeviceId() {
@@ -261,7 +203,7 @@ class MainActivity : AppCompatActivity() {
             if (isOld) {
                 startStopButton.visibility = View.INVISIBLE
                 copyBtn.visibility = View.INVISIBLE
-                val url = "https://api.routechoices.com/device/" + deviceId + "/registrations"
+                val url = "https://api.routechoices.com/device/$deviceId/registrations"
 
 
                 val stringRequest = JsonObjectRequest(Request.Method.GET, url, null,
@@ -274,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                             copyBtn.visibility = View.VISIBLE
                         }
                     },
-                    Response.ErrorListener { _ ->
+                    Response.ErrorListener {
                         requestDeviceId()
                     })
                 requestQueue?.add(stringRequest)
@@ -287,14 +229,14 @@ class MainActivity : AppCompatActivity() {
     private fun requestDeviceId() {
         val url = "https://api.routechoices.com/device_id"
 
-        val params: JSONObject = JSONObject()
+        val params = JSONObject()
         params.put("secret", BuildConfig.POST_LOCATION_SECRET)
 
         val stringRequest = JsonObjectRequest(Request.Method.POST, url, params,
             Listener<JSONObject> { response ->
                 onDeviceIdResponse(response)
             },
-            Response.ErrorListener { _ ->
+            Response.ErrorListener {
                 fetchDeviceId()
             })
         requestQueue?.add(stringRequest)
@@ -305,7 +247,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onClickRegister() {
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://registration.routechoices.com/#device_id=$deviceId"))
+        val browserIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://registration.routechoices.com/#device_id=$deviceId")
+        )
         startActivity(browserIntent)
     }
 

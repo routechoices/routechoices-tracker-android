@@ -36,7 +36,7 @@ class LocationTrackingService : Service() {
     var lastGpsDataTs = -1
     private var requestQueue: RequestQueue? = null
     private var fusedLocationClient: FusedLocationProviderClient? = null
-    private val locationRequest: LocationRequest = LocationRequest()
+    private val locationRequest: LocationRequest = LocationRequest.create()
     private val locationCallback: LocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult?) {
             Log.d("DEBUG", "location callback")
@@ -51,8 +51,6 @@ class LocationTrackingService : Service() {
                     val latitude = location.latitude;
                     val longitude = location.longitude
                     storeToBuffer(timestamp, latitude, longitude)
-                } else {
-                    // Log.d("DEBUG", "Inaccurate location skip")
                 }
             }
         }
@@ -85,7 +83,8 @@ class LocationTrackingService : Service() {
             it.setPackage(packageName)
         };
         restartServiceIntent.putExtra("devId", deviceId)
-        val restartServicePendingIntent: PendingIntent = PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT);
+        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_ONE_SHOT
+        val restartServicePendingIntent: PendingIntent = PendingIntent.getService(this, 1, restartServiceIntent, flag);
         applicationContext.getSystemService(Context.ALARM_SERVICE);
         val alarmService: AlarmManager = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager;
         alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 1000, restartServicePendingIntent);
@@ -208,7 +207,7 @@ class LocationTrackingService : Service() {
             Listener<JSONObject> { response ->
                 onLocationSentResponse(response)
             },
-            Response.ErrorListener { error ->
+            Response.ErrorListener {
                 Log.d("DEBUG", "Error")
             })
         if(requestQueue == null) {
@@ -229,34 +228,30 @@ class LocationTrackingService : Service() {
 
     private fun createNotification(): Notification {
         val notificationChannelId = "Routechoices Tracker"
-
-        // depending on the Android API that we're dealing with we will have
-        // to use a specific method to create the notification
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
-            val channel = NotificationChannel(
-                notificationChannelId,
-                "Routechoices Tracker Service notifications channel",
-                NotificationManager.IMPORTANCE_HIGH
-            ).let {
-                it.description = "Routechoices Tracker"
-                it.enableLights(true)
-                it.lightColor = Color.RED
-                it.enableVibration(true)
-                it.vibrationPattern = longArrayOf(100, 200, 300, 400, 500, 400, 300, 200, 400)
-                it
-            }
-            notificationManager.createNotificationChannel(channel)
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
+        val channel = NotificationChannel(
+            notificationChannelId,
+            "Routechoices Tracker Service notifications channel",
+            NotificationManager.IMPORTANCE_HIGH
+        ).let {
+            it.description = "Routechoices Tracker"
+            it.enableLights(true)
+            it.lightColor = Color.RED
+            it.enableVibration(true)
+            it.vibrationPattern = longArrayOf(100, 200, 300, 400, 500, 400, 300, 200, 400)
+            it
         }
+        notificationManager.createNotificationChannel(channel)
+
 
         val pendingIntent: PendingIntent = Intent(this, MainActivity::class.java).let { notificationIntent ->
-            PendingIntent.getActivity(this, 0, notificationIntent, 0)
+            PendingIntent.getActivity(this, 0, notificationIntent, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_IMMUTABLE else 0)
         }
 
-        val builder: Notification.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(
+        val builder: Notification.Builder = Notification.Builder(
             this,
             notificationChannelId
-        ) else Notification.Builder(this)
+        )
 
         return builder
             .setContentTitle("Routechoices Tracker")
@@ -264,7 +259,6 @@ class LocationTrackingService : Service() {
             .setContentIntent(pendingIntent)
             .setSmallIcon(R.mipmap.ic_launcher_transparent)
             .setTicker("Ticker text")
-            .setPriority(Notification.PRIORITY_HIGH) // for under android 26 compatibility
             .build()
     }
 
