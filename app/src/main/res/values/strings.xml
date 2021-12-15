@@ -1,10 +1,16 @@
 <resources>
     <string name="app_name">Routechoices Tracker</string>
-    <string name="copy">Copy</string>
-    <string name="start">Start live gps</string>
-    <string name="stop">Stop live gps</string>
-    <string name="deviceid">Device Id</string>
-    <string name="deviceid_title">Device ID</string>
     <string name="logo">LOGO</string>
+    <string name="devId">Device ID</string>
+    <string name="fetching">Fetching...</string>
+    <string name="copy">Copy</string>
+    <string name="startGps">Start live GPS</string>
+    <string name="stopGps">Stop live GPS</string>
     <string name="register">Register to an event</string>
+    <string name="allowLocation">Allow location access</string>
+    <string name="allowLocationDesc">Allow precise location access for this app to work properly</string>
+    <string name="allowBgLocation">Allow background location access</string>
+    <string name="allowBgLocationDesc">Allow location access at all the time for this app to work properly</string>
+    <string name="devIdCopied">Device ID copied</string>
+    <string name="liveIsOn">Live GPS tracking is on</string>
 </resources>

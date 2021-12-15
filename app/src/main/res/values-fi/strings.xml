@@ -1,0 +1,14 @@
+<resources>
+    <string name="devId">Laitetunnus</string>
+    <string name="fetching">Haetaan...</string>
+    <string name="copy">Kopio</string>
+    <string name="startGps">Aloita live-gps</string>
+    <string name="stopGps">Lopeta live-gps</string>
+    <string name="register">Ilmoittautua tapahtumaan</string>
+    <string name="allowLocation">Salli sijainnin käyttö</string>
+    <string name="allowLocationDesc">Salli tarkan sijainnin käyttö, jotta tämä sovellus toimii oikein</string>
+    <string name="allowBgLocation">Salli taustasijainnin käyttö</string>
+    <string name="allowBgLocationDesc">Anna sijainnin käyttää aina, jotta tämä sovellus toimii oikein</string>
+    <string name="devIdCopied">laitetunnus kopioitu</string>
+    <string name="liveIsOn">Live GPS-seuranta on päällä</string>
+</resources>

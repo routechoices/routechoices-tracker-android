@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PERMISSIONS_REQUEST_CODE = 736
     }
-
     private val connection = object : ServiceConnection {
 
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -48,8 +47,8 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceDisconnected(arg0: ComponentName) {
             mService = null
             mBound = false
-            if (startStopButton.getText() == "Stop live gps") {
-                startStopButton.setText("Start live gps")
+            if (startStopButton.getText() == resources.getText(R.string.stopGps)) {
+                startStopButton.setText(R.string.startGps)
                 toggleStartStop()
             }
         }
@@ -57,13 +56,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun displayGpsStatusColor() {
         var color = "#ff0800"
-        if (mBound && mService != null && startStopButton.getText() == "Stop live gps") {
+        if (mBound && mService != null && startStopButton.getText() == resources.getText(R.string.stopGps)) {
             if (System.currentTimeMillis()/1e3 - (mService?.lastLocationTS!!) < 10) {
                 color = "#4cd964"
             }
         }
-        if ((!mBound || mService == null) && startStopButton.getText() == "Stop live gps") {
-            startStopButton.setText("Start live gps")
+        if ((!mBound || mService == null) && startStopButton.getText() == resources.getText(R.string.stopGps)) {
+            startStopButton.setText(R.string.startGps)
             toggleStartStop()
         }
         deviceIdTextView.setTextColor(Color.parseColor(color))
@@ -99,8 +98,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showLocationDisclosure(permissions: Array<String>, askBg: Boolean) {
         AlertDialog.Builder(this)
-            .setTitle("Allow location access")
-            .setMessage("Allow precise location access for this app to work properly")
+            .setTitle(R.string.allowLocation)
+            .setMessage(R.string.allowLocationDesc)
             .setPositiveButton(android.R.string.ok) { dialog, _ ->
                 dialog.dismiss()
                 requestPermissions(permissions, PERMISSIONS_REQUEST_CODE)
@@ -113,8 +112,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBGLocationDisclosure() {
         AlertDialog.Builder(this)
-            .setTitle("Allow background location access")
-            .setMessage("Allow this app location access all the time for it to work properly")
+            .setTitle(R.string.allowBgLocation)
+            .setMessage(R.string.allowBgLocationDesc)
             .setPositiveButton(android.R.string.ok) { dialog, _ ->
                 dialog.dismiss()
                 requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), PERMISSIONS_REQUEST_CODE)
@@ -129,9 +128,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         pkgManager = applicationContext.packageManager
         requestQueue = Volley.newRequestQueue(this)
-        deviceIdTextView.setText("Fetching...")
+        deviceIdTextView.setText(R.string.fetching)
         if (getServiceState(this) == ServiceState.STARTED) {
-            startStopButton.setText("Stop live gps")
+            startStopButton.setText(R.string.stopGps)
             startStopButton.setBackgroundColor(Color.parseColor("#ff0800"))
         }
         fetchDeviceId()
@@ -160,12 +159,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleStartStop() {
-        val action = if (startStopButton.getText() == "Start live gps") {
-            startStopButton.setText("Stop live gps")
+        val action = if (startStopButton.getText() == resources.getText(R.string.startGps)) {
+            startStopButton.setText(R.string.stopGps)
             startStopButton.setBackgroundColor(Color.parseColor("#ff0800"))
             "start"
         } else {
-            startStopButton.setText("Start live gps")
+            startStopButton.setText(R.string.startGps)
             startStopButton.setBackgroundColor(Color.parseColor("#007AFF"))
             if (mBound) {
                 mService?.stopService()
@@ -185,9 +184,9 @@ class MainActivity : AppCompatActivity() {
     private fun copyDeviceId() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val textToCopy = deviceId
-        val clip = ClipData.newPlainText("Device ID", textToCopy)
+        val clip = ClipData.newPlainText(resources.getText(R.string.devId), textToCopy)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(applicationContext, "Device ID copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(applicationContext, R.string.devIdCopied, Toast.LENGTH_SHORT).show()
     }
 
     private fun fetchDeviceId() {

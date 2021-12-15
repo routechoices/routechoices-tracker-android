@@ -9,14 +9,14 @@
 
     <TextView
             android:id="@+id/deviceIdTextView"
-            android:layout_width="366dp"
+            android:layout_width="wrap_content"
             android:layout_height="69dp"
-            android:text="@string/deviceid"
+            android:text="@string/fetching"
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.AppCompat.Display2"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.644"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.439" />
@@ -28,7 +28,7 @@
             android:layout_marginTop="56dp"
             android:background="#007AFF"
             android:padding="30px"
-            android:text="@string/start"
+            android:text="@string/startGps"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"
             android:textColor="#FFFFFF"
             app:layout_constraintEnd_toEndOf="parent"
@@ -54,7 +54,7 @@
             android:id="@+id/headerDeviceId"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/deviceid_title"
+            android:text="@string/devId"
             app:layout_constraintBottom_toTopOf="@+id/deviceIdTextView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.502"
@@ -64,7 +64,7 @@
 
     <Button
             android:id="@+id/copyBtn"
-            android:layout_width="58dp"
+            android:layout_width="wrap_content"
             android:layout_height="42dp"
             android:layout_marginTop="16dp"
             android:text="@string/copy"
@@ -76,7 +76,7 @@
 
     <Button
             android:id="@+id/registerButton"
-            android:layout_width="165dp"
+            android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginTop="44dp"
             android:text="@string/register"

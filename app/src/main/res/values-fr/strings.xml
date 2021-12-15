@@ -1,0 +1,14 @@
+<resources>
+    <string name="devId">"Identifiant de l'appareil"</string>
+    <string name="fetching">Chargement...</string>
+    <string name="copy">Copier</string>
+    <string name="startGps">Démarrer le GPS</string>
+    <string name="stopGps">Arrêter le GPS</string>
+    <string name="register">Inscription à un événement</string>
+    <string name="allowLocation">"Autoriser l'accès à la localisation"</string>
+    <string name="allowLocationDesc">"Autoriser l'accès à la localisation précise pour que cette application fonctionne correctement"</string>
+    <string name="allowBgLocation">"Autoriser l'accès à la localisation en arrière-plan"</string>
+    <string name="allowBgLocationDesc">"Autoriser l'accès à la localisation à tout moment pour que cette application fonctionne correctement"</string>
+    <string name="devIdCopied">"Identifiant de l'appareil copié"</string>
+    <string name="liveIsOn">Le suivi GPS en direct est activé</string>
+</resources>

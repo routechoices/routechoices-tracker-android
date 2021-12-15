@@ -38,9 +38,8 @@ class LocationTrackingService : Service() {
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest.create()
     private val locationCallback: LocationCallback = object : LocationCallback() {
-        override fun onLocationResult(locationResult: LocationResult?) {
+        override fun onLocationResult(locationResult: LocationResult) {
             Log.d("DEBUG", "location callback")
-            locationResult ?: return
             for (location in locationResult.locations){
                 Log.d("DEBUG", "Location received")
                 val timestamp = (location.time / 1e3).toInt()
@@ -110,7 +109,7 @@ class LocationTrackingService : Service() {
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         try {
-            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
+            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
         } catch (e: SecurityException) {
             // Log.e(TAG, "Fail to request location update", e)
         } catch (e: IllegalArgumentException) {
@@ -168,7 +167,7 @@ class LocationTrackingService : Service() {
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         try {
-            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper())
+            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
         } catch (e: SecurityException) {
             // Log.e(TAG, "Fail to request location update", e)
         } catch (e: IllegalArgumentException) {
@@ -255,7 +254,7 @@ class LocationTrackingService : Service() {
 
         return builder
             .setContentTitle("Routechoices Tracker")
-            .setContentText("Live GPS Tracking is on")
+            .setContentText(resources.getText(R.string.liveIsOn))
             .setContentIntent(pendingIntent)
             .setSmallIcon(R.mipmap.ic_launcher_transparent)
             .setTicker("Ticker text")
