@@ -1,0 +1,14 @@
+<resources>
+    <string name="devId">Enhets-ID</string>
+    <string name="fetching">Hämtar data</string>
+    <string name="copy">Kopiera</string>
+    <string name="startGps">Starta live GPS</string>
+    <string name="stopGps">Stoppa live GPS</string>
+    <string name="register">Registrera till ett evenemang</string>
+    <string name="allowLocation">Tillåt platsåtkomst</string>
+    <string name="allowLocationDesc">Tillåt exakt platsåtkomst så att den här appen fungerar korrekt</string>
+    <string name="allowBgLocation">Tillåt platsåtkomst i bakgrunden</string>
+    <string name="allowBgLocationDesc">Tillåt platsåtkomst hela tiden för att den här appen ska fungera korrekt</string>
+    <string name="devIdCopied">Enhets-ID kopierat</string>
+    <string name="liveIsOn">Live GPS är aktiverad</string>
+</resources>
