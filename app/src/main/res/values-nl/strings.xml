@@ -1,0 +1,14 @@
+<resources>
+<string name="devId">Toestel ID</string>
+<string name="fetching">Ophalen...</string>
+<string name="copy">Kopiëren</string>
+<string name="startGps">Start live GPS</string>
+<string name="stopGps">Stop live GPS</string>
+<string name="register">Registreer voor event</string>
+<string name="allowLocation">Locatie toestaan</string>
+<string name="allowLocationDesc">Preciese locatie toestaan zodat de app naar behoren werkt</string>
+<string name="allowBgLocation">Locatie in de achtergrond toestaan</string>
+<string name="allowBgLocationDesc">Locatie altijd toestaan zodat de app naar behoren werkt</string>
+<string name="devIdCopied">Toestel ID gekopieerd</string>
+<string name="liveIsOn">Live GPS tracking staat aan</string>
+</resources>

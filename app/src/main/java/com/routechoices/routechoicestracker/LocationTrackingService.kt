@@ -101,7 +101,7 @@ class LocationTrackingService : Service() {
             }
 
         if (fusedLocationClient == null)
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this) as FusedLocationProviderClient
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         locationRequest.interval = 1000
         locationRequest.fastestInterval = 500
@@ -159,7 +159,7 @@ class LocationTrackingService : Service() {
                 // Log.w(TAG, "Failed to remove location listeners")
             }
         if (fusedLocationClient == null)
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this) as FusedLocationProviderClient
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         locationRequest.interval = 1000
         locationRequest.fastestInterval = 500
