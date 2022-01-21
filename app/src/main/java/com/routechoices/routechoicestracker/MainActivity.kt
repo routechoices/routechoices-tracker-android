@@ -22,7 +22,6 @@ import com.android.volley.toolbox.Volley
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import kotlin.concurrent.fixedRateTimer
-import android.util.Log
 
 class MainActivity : AppCompatActivity() {
     private var mService: LocationTrackingService? = null
@@ -199,29 +198,35 @@ class MainActivity : AppCompatActivity() {
             requestDeviceId()
         } else {
             val isOld = Regex("[^0-9]").containsMatchIn(deviceId)
-            if (isOld) {
-                startStopButton.visibility = View.INVISIBLE
-                copyBtn.visibility = View.INVISIBLE
-                val url = "https://api.routechoices.com/device/$deviceId/registrations"
-
-
-                val stringRequest = JsonObjectRequest(Request.Method.GET, url, null,
-                    Listener<JSONObject> { response ->
-                        val count = response.getInt("count")
-                        if (count == 0) {
-                            requestDeviceId()
-                        } else {
-                            startStopButton.visibility = View.VISIBLE
-                            copyBtn.visibility = View.VISIBLE
-                        }
-                    },
-                    Response.ErrorListener {
+            startStopButton.visibility = View.INVISIBLE
+            copyBtn.visibility = View.INVISIBLE
+            val url = "https://api.routechoices.com/device/$deviceId/registrations"
+            val stringRequest = JsonObjectRequest(Request.Method.GET, url, null,
+                { response ->
+                    val count = response.getInt("count")
+                    if (count == 0 && isOld) {
                         requestDeviceId()
-                    })
-                requestQueue?.add(stringRequest)
-                return
-            }
-            deviceIdTextView.text = deviceId
+                    } else {
+                        deviceIdTextView.text = deviceId
+                        startStopButton.visibility = View.VISIBLE
+                        copyBtn.visibility = View.VISIBLE
+                    }
+                },
+                { error ->
+                    val resp = error.networkResponse
+                    var isNotFound: Boolean = false
+                    if (resp != null) {
+                        if (error.networkResponse.statusCode == 404) {
+                            isNotFound = true
+                            requestDeviceId()
+                        }
+                    }
+                    if (!isNotFound) {
+                        deviceIdTextView.text = deviceId
+                    }
+                })
+            requestQueue?.add(stringRequest)
+            return
         }
     }
 
@@ -232,11 +237,11 @@ class MainActivity : AppCompatActivity() {
         params.put("secret", BuildConfig.POST_LOCATION_SECRET)
 
         val stringRequest = JsonObjectRequest(Request.Method.POST, url, params,
-            Listener<JSONObject> { response ->
+            { response ->
                 onDeviceIdResponse(response)
             },
-            Response.ErrorListener {
-                fetchDeviceId()
+            {
+                requestDeviceId()
             })
         requestQueue?.add(stringRequest)
     }

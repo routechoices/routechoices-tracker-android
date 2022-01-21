@@ -121,7 +121,7 @@ class LocationTrackingService : Service() {
                 launch(Dispatchers.IO) {
                     flushBuffer()
                 }
-                delay(10 * 1000)
+                delay(5 * 1000)
             }
         }
 
