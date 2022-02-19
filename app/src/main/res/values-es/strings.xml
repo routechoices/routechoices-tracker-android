@@ -1,0 +1,14 @@
+<resources>
+    <string name="devId">"Dispositivo ID"</string>
+    <string name="fetching">Atrayendo</string>
+    <string name="copy">Copiar</string>
+    <string name="startGps">Iniciar GPS en vivo</string>
+    <string name="stopGps">Parar GPS en vivo</string>
+    <string name="register">Registrarse en el evento</string>
+    <string name="allowLocation">Permitir acceder a la ubicación</string>
+    <string name="allowLocationDesc">Permitir acceder a la ubicación precisa para que la App funcione correctamente</string>
+    <string name="allowBgLocation">Permitir acceso a la ubicación en segundo plano</string>
+    <string name="allowBgLocationDesc">Permitir acceso a la ubicación en todo momento para que la App funcione correctamente</string>
+    <string name="devIdCopied">ID del dispositivo copiado</string>
+    <string name="liveIsOn">Rastreo GPS en vivo activado</string>
+</resources>
