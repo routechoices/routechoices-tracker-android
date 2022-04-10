@@ -18,6 +18,12 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import android.os.BatteryManager
+
+import android.content.IntentFilter
+
+
+
 
 
 class LocationTrackingService : Service() {
@@ -181,6 +187,15 @@ class LocationTrackingService : Service() {
         bufferLon += "$lng,"
     }
 
+    private fun getBatteryPercentage(): Int {
+        val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val batteryStatus = registerReceiver(null, iFilter)
+        val level = batteryStatus!!.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = batteryStatus!!.getIntExtra(BatteryManager.EXTRA_SCALE, 1)
+        val batteryPct = level / scale.toFloat()
+        return (batteryPct * 100).toInt()
+    }
+
     private fun flushBuffer() {
         Log.d("DEBUG", "Flush")
         if (lastGpsDataTs != -1 && System.currentTimeMillis()/1e3 - lastGpsDataTs > 30) {
@@ -191,6 +206,7 @@ class LocationTrackingService : Service() {
         val url =
             "https://api.routechoices.com/locations"
 
+        val batteryPct: String = getBatteryPercentage().toString()
 
         val params: JSONObject = JSONObject()
         params.put("device_id", deviceId)
@@ -198,7 +214,7 @@ class LocationTrackingService : Service() {
         params.put("longitudes", bufferLon)
         params.put("timestamps", bufferTs)
         params.put("secret", BuildConfig.POST_LOCATION_SECRET)
-
+        params.put("battery", batteryPct)
         val stringRequest = JsonObjectRequest(
             Request.Method.POST,
             url,
