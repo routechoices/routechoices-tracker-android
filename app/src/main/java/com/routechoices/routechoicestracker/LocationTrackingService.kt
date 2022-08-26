@@ -204,7 +204,7 @@ class LocationTrackingService : Service() {
         }
         if (bufferTs == "") return
         val url =
-            "https://api.routechoices.com/locations"
+            "https://api.routechoices.com/locations/"
 
         val batteryPct: String = getBatteryPercentage().toString()
 
@@ -213,9 +213,8 @@ class LocationTrackingService : Service() {
         params.put("latitudes", bufferLat)
         params.put("longitudes", bufferLon)
         params.put("timestamps", bufferTs)
-        params.put("secret", BuildConfig.POST_LOCATION_SECRET)
         params.put("battery", batteryPct)
-        val stringRequest = JsonObjectRequest(
+        val stringRequest = object: JsonObjectRequest(
             Request.Method.POST,
             url,
             params,
@@ -224,7 +223,15 @@ class LocationTrackingService : Service() {
             },
             Response.ErrorListener {
                 Log.d("DEBUG", "Error")
-            })
+            }) {
+            override fun getHeaders(): Map<String, String> {
+                val headers = HashMap<String, String>()
+                headers["Content-Type"] = "application/json"
+                val auth = "Bearer " + BuildConfig.POST_LOCATION_SECRET
+                headers["Authorization"] = auth
+                return headers
+            }
+        }
         if(requestQueue == null) {
             requestQueue = Volley.newRequestQueue(this)
         }

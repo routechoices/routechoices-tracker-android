@@ -231,18 +231,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestDeviceId() {
-        val url = "https://api.routechoices.com/device_id"
+        val url = "https://api.routechoices.com/device/"
 
         val params = JSONObject()
-        params.put("secret", BuildConfig.POST_LOCATION_SECRET)
 
-        val stringRequest = JsonObjectRequest(Request.Method.POST, url, params,
+        val stringRequest = object: JsonObjectRequest(Request.Method.POST, url, params,
             { response ->
                 onDeviceIdResponse(response)
             },
             {
                 requestDeviceId()
-            })
+            }){
+            override fun getHeaders() : Map<String,String> {
+                val headers = HashMap<String, String>()
+                headers["Content-Type"] = "application/json"
+                val auth = "Bearer " + BuildConfig.POST_LOCATION_SECRET
+                headers["Authorization"] = auth
+                return headers
+            }
+        }
         requestQueue?.add(stringRequest)
     }
 

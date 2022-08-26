@@ -4,7 +4,7 @@
     <string name="copy">Kopio</string>
     <string name="startGps">Aloita live-gps</string>
     <string name="stopGps">Lopeta live-gps</string>
-    <string name="register">Ilmoittautua tapahtumaan</string>
+    <string name="register">Ilmoittaudu tapahtumaan</string>
     <string name="allowLocation">Salli sijainnin käyttö</string>
     <string name="allowLocationDesc">Salli tarkan sijainnin käyttö, jotta tämä sovellus toimii oikein</string>
     <string name="allowBgLocation">Salli taustasijainnin käyttö</string>
