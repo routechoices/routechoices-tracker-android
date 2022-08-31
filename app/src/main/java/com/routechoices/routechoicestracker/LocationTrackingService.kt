@@ -206,14 +206,18 @@ class LocationTrackingService : Service() {
         val url =
             "https://api.routechoices.com/locations/"
 
-        val batteryPct: String = getBatteryPercentage().toString()
+
 
         val params: JSONObject = JSONObject()
         params.put("device_id", deviceId)
         params.put("latitudes", bufferLat)
         params.put("longitudes", bufferLon)
         params.put("timestamps", bufferTs)
-        params.put("battery", batteryPct)
+        val batteryPctInt = getBatteryPercentage()
+        if (batteryPctInt in 0..100) {
+            val batteryPct: String = getBatteryPercentage().toString()
+            params.put("battery", batteryPct)
+        }
         val stringRequest = object: JsonObjectRequest(
             Request.Method.POST,
             url,
