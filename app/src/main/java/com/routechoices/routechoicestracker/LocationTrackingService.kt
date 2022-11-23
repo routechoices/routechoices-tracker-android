@@ -9,7 +9,6 @@ import android.util.Log
 import com.android.volley.RequestQueue
 import com.android.volley.Request
 import com.android.volley.Response
-import com.android.volley.Response.Listener
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.android.gms.location.*
@@ -21,9 +20,6 @@ import org.json.JSONObject
 import android.os.BatteryManager
 
 import android.content.IntentFilter
-
-
-
 
 
 class LocationTrackingService : Service() {
@@ -115,7 +111,11 @@ class LocationTrackingService : Service() {
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         try {
-            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
+            fusedLocationClient?.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.myLooper()
+            )
         } catch (e: SecurityException) {
             // Log.e(TAG, "Fail to request location update", e)
         } catch (e: IllegalArgumentException) {
@@ -138,7 +138,7 @@ class LocationTrackingService : Service() {
             try {
                 fusedLocationClient?.removeLocationUpdates(locationCallback)
             } catch (e: Exception) {
-                // Log.w(TAG, "Failed to remove location listeners")
+                Log.w(TAG, "Failed to remove location listeners")
             }
         try {
             wakeLock?.let {
@@ -154,31 +154,6 @@ class LocationTrackingService : Service() {
         isServiceStarted = false
         setServiceState(this, ServiceState.STOPPED)
         flushBuffer()
-    }
-
-    private fun restartService() {
-        if (fusedLocationClient != null)
-            try {
-                fusedLocationClient?.removeLocationUpdates(locationCallback)
-                fusedLocationClient = null
-            } catch (e: Exception) {
-                // Log.w(TAG, "Failed to remove location listeners")
-            }
-        if (fusedLocationClient == null)
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-        locationRequest.interval = 1000
-        locationRequest.fastestInterval = 500
-        locationRequest.smallestDisplacement = 0f
-        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-
-        try {
-            fusedLocationClient?.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
-        } catch (e: SecurityException) {
-            // Log.e(TAG, "Fail to request location update", e)
-        } catch (e: IllegalArgumentException) {
-            // Log.e(TAG, "Network provider does not exist", e)
-        }
     }
 
     private fun storeToBuffer(timestamp: Int, lat: Double, lng: Double) {
@@ -198,15 +173,9 @@ class LocationTrackingService : Service() {
 
     private fun flushBuffer() {
         Log.d("DEBUG", "Flush")
-        if (lastGpsDataTs != -1 && System.currentTimeMillis()/1e3 - lastGpsDataTs > 30) {
-            Log.d("DEBUG", "Restarting service")
-            restartService()
-        }
         if (bufferTs == "") return
         val url =
             "https://api.routechoices.com/locations/"
-
-
 
         val params: JSONObject = JSONObject()
         params.put("device_id", deviceId)
@@ -222,11 +191,11 @@ class LocationTrackingService : Service() {
             Request.Method.POST,
             url,
             params,
-            Listener<JSONObject> { response ->
+            Response.Listener<JSONObject> { response ->
                 onLocationSentResponse(response)
             },
-            Response.ErrorListener {
-                Log.d("DEBUG", "Error")
+            Response.ErrorListener { error ->
+                Log.e(TAG, "Error flushing to API => $error")
             }) {
             override fun getHeaders(): Map<String, String> {
                 val headers = HashMap<String, String>()
@@ -246,6 +215,7 @@ class LocationTrackingService : Service() {
         bufferTs = ""
         bufferLat = ""
         bufferLon = ""
+        Log.d("DEBUG", "Buffer flushed")
     }
 
     companion object {
