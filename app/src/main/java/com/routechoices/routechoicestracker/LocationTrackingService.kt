@@ -20,13 +20,16 @@ import org.json.JSONObject
 import android.os.BatteryManager
 
 import android.content.IntentFilter
+import android.view.View
+import kotlinx.android.synthetic.main.activity_main.*
 
 
 class LocationTrackingService : Service() {
     inner class MyBinder : Binder() {
         fun getService(): LocationTrackingService = this@LocationTrackingService
     }
-
+    private var realTimeDiff = 0.0;
+    private var startElapsedTime = 0.0;
     private val binder by lazy { MyBinder() }
     private var wakeLock: PowerManager.WakeLock? = null
     private var isServiceStarted = false
@@ -39,12 +42,13 @@ class LocationTrackingService : Service() {
     private var requestQueue: RequestQueue? = null
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private val locationRequest: LocationRequest = LocationRequest.create()
+
     private val locationCallback: LocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             Log.d("DEBUG", "location callback")
             for (location in locationResult.locations){
-                Log.d("DEBUG", "Location received")
-                val timestamp = (location.time / 1e3).toInt()
+                val timestamp = (location.elapsedRealtimeNanos / 1e9 + realTimeDiff).toInt()
+                Log.d("DEBUG", "Location received $timestamp")
                 lastGpsDataTs = timestamp
                 if(location.accuracy <= 50) {
                     Log.d("DEBUG", "Location accuracy correct")
@@ -101,6 +105,24 @@ class LocationTrackingService : Service() {
                     acquire()
                 }
             }
+
+        startElapsedTime = SystemClock.elapsedRealtime() / 1e3
+        realTimeDiff = System.currentTimeMillis() / 1e3 - startElapsedTime
+
+        val clockUrl =
+            "https://api.routechoices.com/time/";
+        val timeRequest = JsonObjectRequest(Request.Method.GET, clockUrl, null,
+            { response ->
+                val endElapsedTime = SystemClock.elapsedRealtime() / 1e3
+                val time = response.getDouble("time")
+                realTimeDiff = time - (endElapsedTime + startElapsedTime) / 2
+            }, { error ->
+                Log.e(TAG, "Error getting time => $error")
+            })
+        if(requestQueue == null) {
+            requestQueue = Volley.newRequestQueue(this)
+        }
+        requestQueue?.add(timeRequest)
 
         if (fusedLocationClient == null)
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
