@@ -9,13 +9,13 @@ def configProperties = new Properties()
 configProperties.load(new FileInputStream(configPropertiesFile))
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
     defaultConfig {
         applicationId "com.routechoices.routechoicestracker"
         minSdkVersion 26
-        targetSdkVersion 31
-        versionCode 36
-        versionName "1.7.1"
+        targetSdkVersion 33
+        versionCode 37
+        versionName "1.7.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "POST_LOCATION_SECRET", configProperties['POST_LOCATION_SECRET'])
     }
