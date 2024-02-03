@@ -14,8 +14,8 @@ android {
         applicationId "com.routechoices.routechoicestracker"
         minSdkVersion 26
         targetSdkVersion 33
-        versionCode 39
-        versionName "1.7.4"
+        versionCode 41
+        versionName "1.7.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "POST_LOCATION_SECRET", configProperties['POST_LOCATION_SECRET'])
     }

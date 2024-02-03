@@ -20,7 +20,6 @@ import org.json.JSONObject
 import android.os.BatteryManager
 
 import android.content.IntentFilter
-import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
 
 

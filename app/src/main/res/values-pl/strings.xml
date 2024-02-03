@@ -1,0 +1,14 @@
+<resources>
+    <string name="devId">Identyfikator urządzenia</string>
+    <string name="fetching">Pobieranie...</string>
+    <string name="copy">Kopiuj</string>
+    <string name="startGps">Start śledzenia GPS</string>
+    <string name="stopGps">Koniec śledzenia GPS</string>
+    <string name="register">Zarejestruj na zawody</string>
+    <string name="allowLocation">Zgoda na lokalizację</string>
+    <string name="allowLocationDesc">Aplikacja wymaga dostępu do lokalizacji do funkcjonowania</string>
+    <string name="allowBgLocation">Zgoda na lokalizację w tle</string>
+    <string name="allowBgLocationDesc">Aplikacja wymaga stałego dostępu do lokalizacji do funkcjonowania</string>
+    <string name="devIdCopied">Identyfikator skopiowany</string>
+    <string name="liveIsOn">Trwa śledzenie GPS</string>
+</resources>
